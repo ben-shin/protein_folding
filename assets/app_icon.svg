@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071426"/>
+      <stop offset="0.55" stop-color="#263d85"/>
+      <stop offset="1" stop-color="#24c8d8"/>
+    </linearGradient>
+    <linearGradient id="protein" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c8fbff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <circle cx="790" cy="210" r="185" fill="#6957f5" opacity="0.38"/>
+  <circle cx="840" cy="360" r="115" fill="#24c8d8" opacity="0.35"/>
+  <path d="M210 620 C300 420 410 760 500 520 S700 280 820 470" fill="none" stroke="url(#protein)" stroke-width="56" stroke-linecap="round"/>
+  <circle cx="210" cy="620" r="42" fill="#ffffff"/>
+  <circle cx="500" cy="520" r="42" fill="#ffffff"/>
+  <circle cx="820" cy="470" r="42" fill="#ffffff"/>
+  <path d="M235 770 H790" stroke="#ffffff" stroke-width="28" stroke-linecap="round" opacity="0.9"/>
+  <path d="M310 835 H715" stroke="#b7f4fb" stroke-width="22" stroke-linecap="round" opacity="0.8"/>
+</svg>
