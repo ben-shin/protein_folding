@@ -1,0 +1,158 @@
+name: Build portable apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install -r portable_build_requirements.txt
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Build
+        run: python build_portable.py
+      - name: Test bundled imports
+        shell: pwsh
+        run: |
+          & .\dist\ProteinFoldingPractical\ProteinFoldingPractical.exe --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path .\dist\ProteinFoldingPractical -DestinationPath .\Protein-Folding-Practical-Windows-x64.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Protein-Folding-Practical-Windows-x64
+          path: Protein-Folding-Practical-Windows-x64.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux x64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install desktop libraries
+        run: sudo apt-get update && sudo apt-get install -y tk libgl1 libx11-6 libxext6 libxrender1
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install -r portable_build_requirements.txt
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Build
+        run: python build_portable.py
+      - name: Test bundled imports
+        run: ./dist/ProteinFoldingPractical/ProteinFoldingPractical --self-test
+      - name: Package
+        run: tar -C dist -czf Protein-Folding-Practical-Linux-x64.tar.gz ProteinFoldingPractical
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Protein-Folding-Practical-Linux-x64
+          path: Protein-Folding-Practical-Linux-x64.tar.gz
+          if-no-files-found: error
+
+  macos-arm:
+    name: macOS Apple Silicon
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install -r portable_build_requirements.txt
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Build
+        run: python build_portable.py
+      - name: Test bundled imports
+        run: ./dist/ProteinFoldingPractical.app/Contents/MacOS/ProteinFoldingPractical --self-test
+      - name: Package
+        run: |
+          mkdir portable-package
+          cp -R dist/ProteinFoldingPractical.app portable-package/
+          cp dist/START_HERE.txt portable-package/
+          ditto -c -k --sequesterRsrc --keepParent portable-package Protein-Folding-Practical-macOS-Apple-Silicon.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Protein-Folding-Practical-macOS-Apple-Silicon
+          path: Protein-Folding-Practical-macOS-Apple-Silicon.zip
+          if-no-files-found: error
+
+  macos-intel:
+    name: macOS Intel
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install -r portable_build_requirements.txt
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Build
+        run: python build_portable.py
+      - name: Test bundled imports
+        run: ./dist/ProteinFoldingPractical.app/Contents/MacOS/ProteinFoldingPractical --self-test
+      - name: Package
+        run: |
+          mkdir portable-package
+          cp -R dist/ProteinFoldingPractical.app portable-package/
+          cp dist/START_HERE.txt portable-package/
+          ditto -c -k --sequesterRsrc --keepParent portable-package Protein-Folding-Practical-macOS-Intel.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Protein-Folding-Practical-macOS-Intel
+          path: Protein-Folding-Practical-macOS-Intel.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish release assets
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, linux, macos-arm, macos-intel]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: downloaded-artifacts
+      - name: Collect release files
+        run: |
+          mkdir release-files
+          find downloaded-artifacts -maxdepth 2 -type f -exec cp {} release-files/ \;
+          ls -lh release-files
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" release-files/* --generate-notes --title "Protein Folding Practical ${GITHUB_REF_NAME}"
